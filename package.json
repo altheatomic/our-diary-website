@@ -20,5 +20,9 @@
   "homepage": "https://github.com/altheatomic/our-diary-website#readme",
   "devDependencies": {
     "concurrently": "^9.1.2"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "jsonwebtoken": "^9.0.2"
   }
 }
