@@ -6,6 +6,7 @@ import Memories from './pages/Memories';
 import LifeTarget from './pages/LifeTarget';
 import Gallery from './pages/Gallery';
 import Account from './pages/Account';
+import Settings from './pages/Settings';
 import MainLayout from './layout/MainLayout';
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
           <Route path="/life-target" element={<LifeTarget />} />
           <Route path="/gallery" element={<Gallery />} />
           <Route path="/account" element={<Account />} />
+          <Route path="/settings" element={<Settings />} />
         </Route>
       </Routes>
     </Router>

@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { FiSettings } from 'react-icons/fi';
 
 const Navbar = () => {
   const location = useLocation();
@@ -13,7 +14,7 @@ const Navbar = () => {
   return (
     <nav className="bg-white shadow px-6 py-3 flex justify-between items-center">
       <h1 className="text-xl font-bold text-gray-800">Our Diary</h1>
-      <div className="flex space-x-4">
+      <div className="flex space-x-4 items-center">
         {navItems.map((item) => (
           <Link
             key={item.name}
@@ -27,6 +28,18 @@ const Navbar = () => {
             {item.name}
           </Link>
         ))}
+
+        {/* Icon Settings */}
+        <Link
+          to="/settings"
+          className={`p-2 rounded-full ${
+            location.pathname === '/settings'
+              ? 'bg-blue-500 text-white'
+              : 'text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          <FiSettings size={20} />
+        </Link>
       </div>
     </nav>
   );
