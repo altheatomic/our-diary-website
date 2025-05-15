@@ -1,8 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
-import { FiSettings } from 'react-icons/fi';
+import { FiSettings, FiLogOut } from 'react-icons/fi';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const location = useLocation();
+  const { logout } = useAuth();
+
   const navItems = [
     { name: 'Home', path: '/home' },
     { name: 'Memories', path: '/memories' },
@@ -14,6 +17,7 @@ const Navbar = () => {
   return (
     <nav className="bg-white shadow px-6 py-3 flex justify-between items-center">
       <h1 className="text-xl font-bold text-gray-800">Our Diary</h1>
+
       <div className="flex space-x-4 items-center">
         {navItems.map((item) => (
           <Link
@@ -40,6 +44,15 @@ const Navbar = () => {
         >
           <FiSettings size={20} />
         </Link>
+
+        {/* Icon Logout */}
+        <button
+          onClick={logout}
+          title="Logout"
+          className="p-2 rounded-full text-gray-700 hover:bg-gray-200"
+        >
+          <FiLogOut size={20} />
+        </button>
       </div>
     </nav>
   );

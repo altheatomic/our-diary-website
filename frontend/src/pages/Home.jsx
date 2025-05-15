@@ -1,78 +1,152 @@
-import { useRef, useState } from "react";
-import defaultCover from "../assets/default-cover.jpg";
-import defaultAvatar from "../assets/default-icon.png";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import API from "../services/api";
+import { useAuth } from '../context/AuthContext';
+import Calendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css'; // style mặc định
+import NoteItem from "../components/NoteItem";
+import CoverHeader from "../components/CoverHeader";
 
 export default function Home() {
-  const [coverImage, setCoverImage] = useState(defaultCover);
-  const [avatarImage, setAvatarImage] = useState(defaultAvatar);
+  const { user, logout } = useAuth();
   const [title, setTitle] = useState("Personal Diary");
+  const [noteInput, setNoteInput] = useState("");
+  const [notes, setNotes] = useState([]);
+  const [emotions, setEmotions] = useState({});
+  const [selectedDate, setSelectedDate] = useState(null); // 👈 ô đang chọn emoji
 
-  // Refs để click input file khi double click ảnh
-  const coverInputRef = useRef(null);
-  const avatarInputRef = useRef(null);
+  useEffect(() => {
+    API.get("/notes")
+      .then((res) => setNotes(res.data))
+      .catch((err) => console.error("Lỗi khi lấy notes:", err));
+  }, []);
 
-  const handleImageChange = (e, type) => {
-    const file = e.target.files[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      type === "cover" ? setCoverImage(imageUrl) : setAvatarImage(imageUrl);
+  const handleAddNote = () => {
+    if (noteInput.trim() === "") return;
+
+    const newNote = {
+      text: noteInput.trim(),
+      timestamp: new Date().toLocaleString(),
+    };
+
+    API.post("/notes", newNote)
+    .then((res) => {
+      setNotes((prev) => [res.data, ...prev]);
+      setNoteInput(""); // xóa input sau khi thêm
+    })
+    .catch((err) => {
+      console.error("Lỗi khi thêm note:", err);
+      alert("Không thể thêm note. Hãy kiểm tra đăng nhập hoặc kết nối.");
+    });
+  };
+
+  const handleEmotionChange = (date, emoji) => {
+    setEmotions((prev) => ({ ...prev, [date]: emoji }));
+    setSelectedDate(null); // đóng popup
+  };
+
+  const renderEmotionCalendar = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const weeks = [];
+    let day = 1 - firstDay;
+
+    while (day <= daysInMonth) {
+      const week = [];
+
+      for (let i = 0; i < 7; i++) {
+        const current = new Date(year, month, day);
+        const dateKey = current.toISOString().slice(0, 10);
+        const emoji = emotions[dateKey] || "";
+
+        week.push(
+          <div
+            key={i + day}
+            onClick={() => day > 0 && day <= daysInMonth && setSelectedDate(dateKey)}
+            className="border rounded-md w-10 h-10 flex items-center justify-center text-sm relative cursor-pointer hover:bg-yellow-100"
+          >
+            {day > 0 && day <= daysInMonth ? (
+              <>
+                <span>{emoji || day}</span>
+
+                {/* Hiển thị popup emoji nếu click vào */}
+                {selectedDate === dateKey && (
+                  <div className="absolute top-full mt-1 left-1/2 -translate-x-1/2 bg-white border rounded shadow-md p-1 z-10 flex gap-1">
+                    {["😀", "😐", "😢", "😠"].map((em) => (
+                      <span
+                        key={em}
+                        onClick={(e) => {
+                          e.stopPropagation(); // không đóng ngay
+                          handleEmotionChange(dateKey, em);
+                        }}
+                        className="text-lg hover:scale-110 transition-transform cursor-pointer"
+                      >
+                        {em}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : null}
+          </div>
+        );
+        day++;
+      }
+
+      weeks.push(<div key={day} className="flex gap-1">{week}</div>);
     }
+
+    return <div className="space-y-1">{weeks}</div>;
   };
 
   return (
-    <div className="w-full">
-      {/* Cover Image */}
-      <div className="relative w-full h-60 overflow-hidden">
-        <img
-          src={coverImage}
-          alt="Cover"
-          className="w-full h-full object-cover cursor-pointer"
-          onDoubleClick={() => coverInputRef.current.click()}
-        />
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          ref={coverInputRef}
-          onChange={(e) => handleImageChange(e, "cover")}
-        />
-      </div>
+    <div className="w-full pb-16">
+      <CoverHeader title={title} setTitle={setTitle} />
 
-      {/* Avatar Container */}
-      <div className="relative w-24 h-24 ml-36 -mt-12">
-        <div className="w-full h-full overflow-hidden rounded-full border-4 border-white">
-          <img
-            src={avatarImage}
-            alt="Avatar"
-            className="w-full h-full object-cover cursor-pointer"
-            onDoubleClick={() => avatarInputRef.current.click()}
-          />
-        </div>
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          ref={avatarInputRef}
-          onChange={(e) => handleImageChange(e, "avatar")}
-        />
-      </div>
-
-      {/* Title */}
-      <div className="ml-28 mt-6">
-        <input
-          type="text"
-          className="text-4xl font-bold text-left border-none focus:outline-none leading-relaxed"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-      </div>
-
-      {/* Quote Box */}
+      {/* Quote */}
       <div className="ml-28 mt-4 bg-gray-100 rounded-md px-4 py-2 flex items-center max-w-xl">
-        {/* Quote */}
         <p className="text-gray-700 italic">
           Stay Hungry, Stay Foolish — <span className="not-italic">Steve Jobs</span>
         </p>
+      </div>
+
+      {/* Notes */}
+      <div className="ml-28 mt-6 max-w-xl">
+        <h2 className="text-xl font-semibold mb-2">Your Notes</h2>
+        <div className="flex gap-2 mb-4">
+          <input
+            type="text"
+            className="flex-1 px-3 py-2 border rounded-md focus:outline-none"
+            placeholder="Write a new note..."
+            value={noteInput}
+            onChange={(e) => setNoteInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleAddNote()}
+          />
+          <button
+            onClick={handleAddNote}
+            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+          >
+            Add
+          </button>
+        </div>
+
+        <ul className="space-y-3">
+          {notes.map((note) => (
+            <NoteItem key={note._id} text={note.text} timestamp={note.timestamp} />
+          ))}
+        </ul>
+      </div>
+
+      {/* Emotion Calendar */}
+      <div className="ml-28 mt-10 max-w-xl">
+        <h2 className="text-xl font-semibold mb-3">Emotion Calendar</h2>
+        <div className="bg-yellow-50 p-4 rounded-md text-gray-700 text-sm">
+          {renderEmotionCalendar()}
+        </div>
       </div>
     </div>
   );
