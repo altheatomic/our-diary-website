@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import API from "../services/api";
 import { useAuth } from '../context/AuthContext';
 import Calendar from 'react-calendar';
@@ -8,7 +7,7 @@ import NoteItem from "../components/NoteItem";
 import CoverHeader from "../components/CoverHeader";
 
 export default function Home() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [title, setTitle] = useState("Personal Diary");
   const [noteInput, setNoteInput] = useState("");
   const [notes, setNotes] = useState([]);
@@ -16,10 +15,26 @@ export default function Home() {
   const [selectedDate, setSelectedDate] = useState(null);
 
   useEffect(() => {
+    if (!user?.id) return;
+
+    // Load notes
     API.get("/notes")
-      .then((res) => setNotes(res.data))
-      .catch((err) => console.error("Failed to pull notes:", err));
-  }, []);
+      .then(res => setNotes(res.data))
+      .catch(err => console.error("Failed to pull notes:", err));
+
+    // Load emotions
+    API.get(`/emotions/${user.id}`)
+      .then(res => {
+        const map = {};
+        res.data.forEach(item => {
+          map[item.date] = item.emotion;
+        });
+        setEmotions(map);
+      })
+      .catch(err => {
+        console.error("Failed to pull emotions:", err);
+      });
+  }, [user?.id]);
 
   const handleAddNote = () => {
     if (noteInput.trim() === "") return;
@@ -30,77 +45,28 @@ export default function Home() {
     };
 
     API.post("/notes", newNote)
-    .then((res) => {
-      setNotes((prev) => [res.data, ...prev]);
-      setNoteInput(""); // delete input after adding
-    })
-    .catch((err) => {
-      console.error("Failed to pull notes:", err);
-      alert("Can't add note. Check the connection.");
+      .then((res) => {
+        setNotes((prev) => [res.data, ...prev]);
+        setNoteInput("");
+      })
+      .catch((err) => {
+        console.error("Failed to pull notes:", err);
+        alert("Can't add note. Check the connection.");
+      });
+  };
+
+  const handleEmotionChange = (dateStr, emoji) => {
+    setEmotions((prev) => ({ ...prev, [dateStr]: emoji }));
+    setSelectedDate(null);
+
+    API.post("/emotions", {
+      userId: user.id,
+      date: dateStr,
+      emotion: emoji,
+    }).catch((err) => {
+      console.error("Failed to save emotion:", err);
+      alert("Lưu cảm xúc thất bại.");
     });
-  };
-
-  const handleEmotionChange = (date, emoji) => {
-    setEmotions((prev) => ({ ...prev, [date]: emoji }));
-    setSelectedDate(null); // close popup
-  };
-
-  const renderEmotionCalendar = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-    const weeks = [];
-    let day = 1 - firstDay;
-
-    while (day <= daysInMonth) {
-      const week = [];
-
-      for (let i = 0; i < 7; i++) {
-        const current = new Date(year, month, day);
-        const dateKey = current.toISOString().slice(0, 10);
-        const emoji = emotions[dateKey] || "";
-
-        week.push(
-          <div
-            key={i + day}
-            onClick={() => day > 0 && day <= daysInMonth && setSelectedDate(dateKey)}
-            className="border rounded-md w-10 h-10 flex items-center justify-center text-sm relative cursor-pointer hover:bg-yellow-100"
-          >
-            {day > 0 && day <= daysInMonth ? (
-              <>
-                <span>{emoji || day}</span>
-
-                {/* Popup emoji when a cell is clicked */}
-                {selectedDate === dateKey && (
-                  <div className="absolute top-full mt-1 left-1/2 -translate-x-1/2 bg-white border rounded shadow-md p-1 z-10 flex gap-1">
-                    {["😀", "😐", "😢", "😠"].map((em) => (
-                      <span
-                        key={em}
-                        onClick={(e) => {
-                          e.stopPropagation(); // prevent close immediatle
-                          handleEmotionChange(dateKey, em);
-                        }}
-                        className="text-lg hover:scale-110 transition-transform cursor-pointer"
-                      >
-                        {em}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : null}
-          </div>
-        );
-        day++;
-      }
-
-      weeks.push(<div key={day} className="flex gap-1">{week}</div>);
-    }
-
-    return <div className="space-y-1">{weeks}</div>;
   };
 
   return (
@@ -145,8 +111,41 @@ export default function Home() {
       <div className="ml-28 mt-10 max-w-xl">
         <h2 className="text-xl font-semibold mb-3">Emotion Calendar</h2>
         <div className="bg-yellow-50 p-4 rounded-md text-gray-700 text-sm">
-          {renderEmotionCalendar()}
+          <Calendar
+            value={new Date()}
+            onClickDay={(value) => {
+              const dateStr = value.toISOString().slice(0, 10);
+              setSelectedDate(dateStr);
+            }}
+            tileContent={({ date }) => {
+              const dateStr = date.toISOString().slice(0, 10);
+              const emoji = emotions[dateStr];
+              return <div className="text-lg text-center">{emoji}</div>;
+            }}
+          />
         </div>
+
+        {/* Emoji picker */}
+        {selectedDate && (
+          <div className="mt-4 p-2 border rounded bg-white shadow flex gap-3 items-center">
+            <p className="text-sm">Chọn cảm xúc cho <strong>{selectedDate}</strong>:</p>
+            {["😀", "😐", "😢", "😠"].map((em) => (
+              <span
+                key={em}
+                onClick={() => handleEmotionChange(selectedDate, em)}
+                className="text-2xl cursor-pointer hover:scale-110 transition-transform"
+              >
+                {em}
+              </span>
+            ))}
+            <button
+              onClick={() => setSelectedDate(null)}
+              className="ml-auto text-xs text-gray-500 hover:underline"
+            >
+              Đóng
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
