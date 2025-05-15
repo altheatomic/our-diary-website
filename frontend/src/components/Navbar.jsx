@@ -14,6 +14,12 @@ const Navbar = () => {
     { name: 'Account', path: '/account' },
   ];
 
+  // logout
+  const handleLogoutConfirm = () => {
+    const confirmed = window.confirm("Confirm to logout?");
+    if (confirmed) logout();
+  };
+
   return (
     <nav className="bg-white shadow px-6 py-3 flex justify-between items-center">
       <h1 className="text-xl font-bold text-gray-800">Our Diary</h1>
@@ -45,11 +51,11 @@ const Navbar = () => {
           <FiSettings size={20} />
         </Link>
 
-        {/* Icon Logout */}
+        {/* Logout with hover spin + confirm */}
         <button
-          onClick={logout}
+          onClick={handleLogoutConfirm}
           title="Logout"
-          className="p-2 rounded-full text-gray-700 hover:bg-gray-200"
+          className="p-2 rounded-full text-gray-700 hover:bg-gray-200 transition-transform duration-200 hover:rotate-90"
         >
           <FiLogOut size={20} />
         </button>

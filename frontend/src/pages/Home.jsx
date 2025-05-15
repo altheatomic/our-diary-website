@@ -3,7 +3,7 @@ import axios from "axios";
 import API from "../services/api";
 import { useAuth } from '../context/AuthContext';
 import Calendar from 'react-calendar';
-import 'react-calendar/dist/Calendar.css'; // style mặc định
+import 'react-calendar/dist/Calendar.css';
 import NoteItem from "../components/NoteItem";
 import CoverHeader from "../components/CoverHeader";
 
@@ -13,12 +13,12 @@ export default function Home() {
   const [noteInput, setNoteInput] = useState("");
   const [notes, setNotes] = useState([]);
   const [emotions, setEmotions] = useState({});
-  const [selectedDate, setSelectedDate] = useState(null); // 👈 ô đang chọn emoji
+  const [selectedDate, setSelectedDate] = useState(null);
 
   useEffect(() => {
     API.get("/notes")
       .then((res) => setNotes(res.data))
-      .catch((err) => console.error("Lỗi khi lấy notes:", err));
+      .catch((err) => console.error("Failed to pull notes:", err));
   }, []);
 
   const handleAddNote = () => {
@@ -32,17 +32,17 @@ export default function Home() {
     API.post("/notes", newNote)
     .then((res) => {
       setNotes((prev) => [res.data, ...prev]);
-      setNoteInput(""); // xóa input sau khi thêm
+      setNoteInput(""); // delete input after adding
     })
     .catch((err) => {
-      console.error("Lỗi khi thêm note:", err);
-      alert("Không thể thêm note. Hãy kiểm tra đăng nhập hoặc kết nối.");
+      console.error("Failed to pull notes:", err);
+      alert("Can't add note. Check the connection.");
     });
   };
 
   const handleEmotionChange = (date, emoji) => {
     setEmotions((prev) => ({ ...prev, [date]: emoji }));
-    setSelectedDate(null); // đóng popup
+    setSelectedDate(null); // close popup
   };
 
   const renderEmotionCalendar = () => {
@@ -73,14 +73,14 @@ export default function Home() {
               <>
                 <span>{emoji || day}</span>
 
-                {/* Hiển thị popup emoji nếu click vào */}
+                {/* Popup emoji when a cell is clicked */}
                 {selectedDate === dateKey && (
                   <div className="absolute top-full mt-1 left-1/2 -translate-x-1/2 bg-white border rounded shadow-md p-1 z-10 flex gap-1">
                     {["😀", "😐", "😢", "😠"].map((em) => (
                       <span
                         key={em}
                         onClick={(e) => {
-                          e.stopPropagation(); // không đóng ngay
+                          e.stopPropagation(); // prevent close immediatle
                           handleEmotionChange(dateKey, em);
                         }}
                         className="text-lg hover:scale-110 transition-transform cursor-pointer"
